@@ -160,7 +160,7 @@ for i in range(10000):
                 print("{} - visited".format(link))
                 total_visit += 1
             except Exception as e:
-                print("{} - cannot be visited due to some error")
+                print("{} - cannot be visited due to some error".format(link))
 
     else:
         for link in tendie_reddit_links:
@@ -169,7 +169,7 @@ for i in range(10000):
                 print("{} - visited".format(link))
                 total_visit += 1
             except Exception as e:
-                print("{} - cannot be visited due to some error")
+                print("{} - cannot be visited due to some error".format(link))
 
     driver.close()
     driver.quit()
