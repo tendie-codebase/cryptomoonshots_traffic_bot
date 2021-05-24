@@ -1,7 +1,15 @@
 import time
+import urllib
 from random import randint
 
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+
 PROXY = '62.210.205.97:19018'  # SET PROXY HERE
+
 total_visit = 0
 
 VISIT_TROUGH_GOOGLE = 1
@@ -14,11 +22,10 @@ def set_viewport_size(driver, width, height):
         """, width, height)
     driver.set_window_size(*window_size)
 
+def gather_tendie_links(driver):
+    links = []
 
-def visit_from_cryptomoonshot(driver):
     driver.get("https://www.reddit.com/search/?q=TendieSwap")
-    action = webdriver.ActionChains(driver)
-    #time.sleep(2)
 
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     try:
@@ -27,34 +34,13 @@ def visit_from_cryptomoonshot(driver):
     except Exception as e:
         pass
 
-    cms = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, '//a[contains(@href, "/r/CryptoMoonShots/comments/nhuzsn/néw_coin_alert_tendie_real_project_known_devs/")]//../../../../../..')))
+    link_elements = driver.find_elements_by_xpath('//a[@data-click-id="body"]')
+    for link_element in link_elements:
+        links.append(link_element.get_attribute('href'))
 
-    cms.click()
-    time.sleep(randint(3, 4))
+    return links
 
-def visit_from_google(driver):
-    driver.get('https://www.google.com/search?q=https%3A%2F%2Fwww.reddit.com%2Fr%2FCryptoMoonShots%2Fcomments%2Fnhuzsn%2Fn%25C3%25A9w_coin_alert_tendie_real_project_known_devs%2F&sxsrf=ALeKk02uKtbVzsPcgRS3iZMSSDFrgpaiJQ%3A1621873233282&ei=UdKrYPjXEKGSrgT7sovQAQ&oq=https%3A%2F%2Fwww.reddit.com%2Fr%2FCryptoMoonShots%2Fcomments%2Fnhuzsn%2Fn%25C3%25A9w_coin_alert_tendie_real_project_known_devs%2F&gs_lcp=Cgdnd3Mtd2l6EAMyBwgAEEcQsAMyBwgAEEcQsAMyBwgAEEcQsAMyBwgAEEcQsAMyBwgAEEcQsAMyBwgAEEcQsAMyBwgAEEcQsAMyBwgAEEcQsANQnOZAWJzmQGC46EBoAXACeACAAVOIAVOSAQExmAEAoAECoAEBqgEHZ3dzLXdpesgBCMABAQ&sclient=gws-wiz&ved=0ahUKEwi4xMLP3OLwAhUhiYsKHXvZAhoQ4dUDCA4&uact=5')
-
-    try:
-        overlay = driver.find_element_by_xpath('//*[@id="xe7COe"]')
-        driver.execute_script("arguments[0].style.display='none'", overlay) # Remove the EU cookie consent visibility because it obscures the page
-    except Exception as e:
-        pass
-
-    cms = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, '//*[@id="rso"]/div/div/div/div/div[1]/a')))
-
-    cms.click()
-    time.sleep(randint(3, 4))
-
-for i in range(10000):
-    from selenium import webdriver
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.keys import Keys
-
+def get_webdriver():
     #firefoxOpt = new FirefoxOptions()
     firefox_profile = webdriver.FirefoxProfile()
 
@@ -114,15 +100,76 @@ for i in range(10000):
         time.sleep(1)
         driver = webdriver.Firefox(firefox_profile=firefox_profile, options=options)
     set_viewport_size(driver, 1660, 1150)
+
+    return driver
+    
+
+def visit_from_cryptomoonshot(driver, link):
+    driver.get("https://www.reddit.com/search/?q=TendieSwap")
+    #time.sleep(2)
+
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    try:
+        overlay = driver.find_element_by_xpath('//*[@id="SHORTCUT_FOCUSABLE_DIV"]/div[3]/div[2]')
+        driver.execute_script("arguments[0].style.display='none'", overlay) # Remove the EU cookie consent visibility because it obscures the page
+    except Exception as e:
+        pass
+
+    cms = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, '//a[contains(@href, "{}")]//../../../../../..'.format(link.replace('https://www.reddit.com', '')))))
+
+    cms.click()
+    time.sleep(randint(3, 4))
+
+def visit_from_google(driver, link):
+    driver.get('https://www.google.com/search?q=' + link)
+
+    try:
+        overlay = driver.find_element_by_xpath('//*[@id="xe7COe"]')
+        driver.execute_script("arguments[0].style.display='none'", overlay) # Remove the EU cookie consent visibility because it obscures the page
+    except Exception as e:
+        pass
+
+    cms = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="rso"]/div/div/div/div/div[1]/a')))
+
+    cms.click()
+    time.sleep(randint(3, 4))
+
+# Get all tendie links from reddit
+driver = get_webdriver()
+tendie_reddit_links = gather_tendie_links(driver)
+print("*****************************************************")
+print("The following links will be visited:")
+for link in tendie_reddit_links:
+    print(link)
+print("*****************************************************")
+driver.close()
+driver.quit()
+time.sleep(1)
+del driver
+
+for i in range(10000):
+    driver = get_webdriver()
     # Open URL
     visit_rnd = randint(1, 2)
     if visit_rnd == VISIT_TROUGH_GOOGLE:
-        visit_from_google(driver)
-    else:
-        visit_from_cryptomoonshot(driver)
+        for link in tendie_reddit_links:
+            try:
+                visit_from_google(driver, link)
+                print("{} - visited".format(link))
+                total_visit += 1
+            except Exception as e:
+                print("{} - cannot be visited due to some error")
 
-    print("https://www.reddit.com/r/CryptoMoonShots/comments/nhuzsn/n%C3%A9w_coin_alert_tendie_real_project_known_devs - visited")
-    total_visit += 1
+    else:
+        for link in tendie_reddit_links:
+            try:
+                visit_from_cryptomoonshot(driver, link)
+                print("{} - visited".format(link))
+                total_visit += 1
+            except Exception as e:
+                print("{} - cannot be visited due to some error")
 
     driver.close()
     driver.quit()
